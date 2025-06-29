@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Simple LLM Chat</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f7f7fa; }
+    #chat { max-width: 600px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #0001; padding: 24px; }
+    .msg { margin: 12px 0; }
+    .user { color: #2563eb; }
+    .assistant { color: #a21caf; }
+    #response { margin-top: 20px; }
+    #send { background: #6366f1; color: #fff; border: none; padding: 8px 18px; border-radius: 4px; cursor: pointer; }
+    #send:disabled { background: #a5b4fc; }
+  </style>
+</head>
+<body>
+  <div id="chat">
+    <h2>Simple LLM Chat</h2>
+    
+    <div style="background: #d1fae5; padding: 12px; border-radius: 4px; margin: 12px 0; color: #059669;">
+      <strong>Setup Instructions:</strong><br>
+      1. Start your local API server: <code>cd api && python app.py</code><br>
+      2. The API should be running at: <code>http://localhost:8000</code><br>
+      3. Enter your OpenAI API key and start chatting!
+    </div>
+    
+    <form id="chatForm">
+      <input type="text" id="userMessage" placeholder="Type your message..." required style="width: 70%;">
+      <input type="password" id="apiKey" placeholder="OpenAI API Key" required style="width: 25%;">
+      <button id="send" type="submit">Send</button>
+    </form>
+    <div id="response"></div>
+  </div>
+  <script>
+    const form = document.getElementById('chatForm');
+    const userMessageInput = document.getElementById('userMessage');
+    const apiKeyInput = document.getElementById('apiKey');
+    const responseDiv = document.getElementById('response');
+
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const userMessage = userMessageInput.value;
+      const apiKey = apiKeyInput.value;
+      responseDiv.innerHTML += `<div class="msg user"><b>You:</b> ${userMessage}</div>`;
+      userMessageInput.value = '';
+      document.getElementById('send').disabled = true;
+
+      try {
+        const res = await fetch('http://localhost:8000/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            developer_message: "You are a helpful AI assistant. Provide clear, concise, and accurate responses.",
+            user_message: userMessage,
+            model: "gpt-4.1-mini",
+            api_key: apiKey
+          })
+        });
+        if (!res.ok) if (res.status === 0) {
+          throw new Error('Network error: Make sure your API server is running at http://localhost:8000');
+        } else {
+          throw new Error(`Server error: ${res.status} ${res.statusText}`);
+        }
+        const reader = res.body.getReader();
+        let assistantMsg = '';
+        let aiDiv = document.createElement('div');
+        aiDiv.className = 'msg assistant';
+        aiDiv.innerHTML = '<b>AI:</b> ';
+        responseDiv.appendChild(aiDiv);
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          assistantMsg += new TextDecoder().decode(value);
+          aiDiv.innerHTML = '<b>AI:</b> ' + assistantMsg;
+        }
+      } catch (err) {
+        responseDiv.innerHTML += `<div class="msg" style="color: #dc2626;"><b>Error:</b> ${err.message}</div>`;
+        if (err.message.includes('Network error')) {
+          responseDiv.innerHTML += `<div style="background: #d1fae5; padding: 12px; border-radius: 4px; margin: 12px 0; color: #059669;">
+            <strong>To fix this:</strong><br>
+            1. Open a terminal and navigate to the api folder<br>
+            2. Run: <code>python app.py</code><br>
+            3. Make sure the server is running on port 8000<br>
+            4. Try again!
+          </div>`;
+        }
+      }
+      document.getElementById('send').disabled = false;
+    };
+  </script>
+</body>
+</html> 
