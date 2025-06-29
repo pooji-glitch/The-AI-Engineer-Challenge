@@ -171,16 +171,50 @@ Here's a template to get your post started!
 ```
 🚀🎉 Exciting News! 🎉🚀
 
-🏗️ Today, I'm thrilled to announce that I've successfully built and shipped my first-ever LLM using the powerful combination of , and the OpenAI API! 🖥️
+🏗️ Today, I'm thrilled to announce that I've successfully built and shipped my first-ever LLM using the powerful combination of , and the OpenAI API! 🖥️
 
 Check it out 👇
 [LINK TO APP]
 
 A big shoutout to the @AI Makerspace for all making this possible. Couldn't have done it without the incredible community there. 🤗🙏
 
-Looking forward to building with the community! 🙌✨ Here's to many more creations ahead! 🥂🎉
+Looking forward to building with the community! 🙌✨ Here's to many more creations ahead! 🥂🎉
 
 Who else is diving into the world of AI? Let's connect! 🌐💡
 
 #FirstLLMApp 
 ```
+
+# 🎯 Activities & Progress
+
+## 📋 Challenge Progress Tracker
+
+### ✅ Completed Steps
+- [x] **Repository Setup**: Forked and cloned the AI Engineer Challenge repository
+- [x] **Development Environment**: Set up local development environment with Python and FastAPI
+- [x] **Backend Development**: Created FastAPI backend with OpenAI integration
+- [x] **Frontend Development**: Built responsive chat interface with HTML/CSS/JavaScript
+- [x] **API Integration**: Connected frontend to backend with streaming responses
+- [x] **Deployment**: Successfully deployed application to Vercel
+- [x] **Error Handling**: Implemented comprehensive error handling and user guidance
+
+### 🚀 Current Status
+- **Frontend URL**: https://the-ai-engineer-challenge-8k208iy1g-poojithas-projects-036a8fba.vercel.app
+- **Backend**: Local FastAPI server running on port 8000
+- **Features**: Real-time streaming AI chat with OpenAI integration
+- **Status**: ✅ **FULLY FUNCTIONAL**
+
+### 📝 Development Notes
+- **Architecture**: Client-server model with FastAPI backend and HTML/JS frontend
+- **Key Features**: Streaming responses, error handling, user-friendly interface
+- **Technologies**: Python, FastAPI, OpenAI API, HTML, CSS, JavaScript, Vercel
+- **Challenges Overcome**: API authentication issues, deployment configuration, CORS setup
+
+### 🎯 Next Steps
+- [ ] Add user authentication system
+- [ ] Implement conversation history
+- [ ] Add support for multiple AI models
+- [ ] Enhance UI/UX with additional features
+- [ ] Add analytics and monitoring
+
+---
