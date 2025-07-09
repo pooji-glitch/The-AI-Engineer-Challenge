@@ -9,12 +9,15 @@ from openai import OpenAI
 import os
 from typing import Optional, List
 import uuid
+import pandas as pd
+import io
+from docx import Document
 from aimakerspace.pdf_utils import PDFIndexer, PDFLoader
 from aimakerspace.vectordatabase import VectorDatabase
 from aimakerspace.openai_utils.embedding import EmbeddingModel
 
 # Initialize FastAPI application with a title
-app = FastAPI(title="AI Chat API with RAG")
+app = FastAPI(title="Financial Document Assistant API")
 
 # Configure CORS (Cross-Origin Resource Sharing) middleware
 # This allows the API to be accessed from different domains/origins
@@ -40,12 +43,98 @@ class ChatRequest(BaseModel):
     user_message: str      # Message from the user
     model: Optional[str] = "gpt-4o-mini"  # Optional model selection with default
     api_key: str          # OpenAI API key for authentication
+    analysis_type: Optional[str] = "general"  # Type of financial analysis
 
 class DocumentInfo(BaseModel):
     document_name: str
     chunks_created: int
     total_text_length: int
     status: str
+
+class FinancialDocumentProcessor:
+    """Process various financial document types"""
+    
+    def __init__(self):
+        self.text_splitter = None  # Will be initialized with vector_db
+    
+    def extract_text_from_excel(self, file_bytes: bytes, filename: str) -> str:
+        """Extract text from Excel files"""
+        try:
+            # Read Excel file
+            df = pd.read_excel(io.BytesIO(file_bytes))
+            
+            # Convert to text representation
+            text_content = []
+            text_content.append(f"Excel Document: {filename}")
+            text_content.append("=" * 50)
+            
+            # Add column headers
+            text_content.append("Column Headers:")
+            text_content.append(", ".join(df.columns.tolist()))
+            text_content.append("")
+            
+            # Add data rows (limit to first 100 rows for performance)
+            text_content.append("Data:")
+            for index, row in df.head(100).iterrows():
+                row_text = ", ".join([f"{col}: {val}" for col, val in row.items() if pd.notna(val)])
+                text_content.append(f"Row {index + 1}: {row_text}")
+            
+            return "\n".join(text_content)
+        except Exception as e:
+            raise ValueError(f"Error processing Excel file: {str(e)}")
+    
+    def extract_text_from_csv(self, file_bytes: bytes, filename: str) -> str:
+        """Extract text from CSV files"""
+        try:
+            # Read CSV file
+            df = pd.read_csv(io.BytesIO(file_bytes))
+            
+            # Convert to text representation
+            text_content = []
+            text_content.append(f"CSV Document: {filename}")
+            text_content.append("=" * 50)
+            
+            # Add column headers
+            text_content.append("Column Headers:")
+            text_content.append(", ".join(df.columns.tolist()))
+            text_content.append("")
+            
+            # Add data rows (limit to first 100 rows for performance)
+            text_content.append("Data:")
+            for index, row in df.head(100).iterrows():
+                row_text = ", ".join([f"{col}: {val}" for col, val in row.items() if pd.notna(val)])
+                text_content.append(f"Row {index + 1}: {row_text}")
+            
+            return "\n".join(text_content)
+        except Exception as e:
+            raise ValueError(f"Error processing CSV file: {str(e)}")
+    
+    def extract_text_from_word(self, file_bytes: bytes, filename: str) -> str:
+        """Extract text from Word documents"""
+        try:
+            # Read Word document
+            doc = Document(io.BytesIO(file_bytes))
+            
+            # Extract text from paragraphs
+            text_content = []
+            text_content.append(f"Word Document: {filename}")
+            text_content.append("=" * 50)
+            
+            for paragraph in doc.paragraphs:
+                if paragraph.text.strip():
+                    text_content.append(paragraph.text)
+            
+            return "\n".join(text_content)
+        except Exception as e:
+            raise ValueError(f"Error processing Word document: {str(e)}")
+    
+    def extract_text_from_txt(self, file_bytes: bytes, filename: str) -> str:
+        """Extract text from plain text files"""
+        try:
+            text_content = file_bytes.decode('utf-8')
+            return f"Text Document: {filename}\n{'=' * 50}\n{text_content}"
+        except Exception as e:
+            raise ValueError(f"Error processing text file: {str(e)}")
 
 # Initialize the document indexer
 def initialize_indexer(api_key: str = None):
@@ -58,35 +147,54 @@ def initialize_indexer(api_key: str = None):
         document_indexer = PDFIndexer(vector_db, pdf_loader)
     return document_indexer
 
-# Define the PDF upload endpoint
+# Define the document upload endpoint
 @app.post("/api/upload-pdf")
-async def upload_pdf(
+async def upload_document(
     file: UploadFile = File(...),
     api_key: str = Form(...)
 ):
     try:
-        # Validate file type
-        if not file.filename.lower().endswith('.pdf'):
-            raise HTTPException(status_code=400, detail="Only PDF files are supported")
-        
         # Read file content
-        pdf_content = await file.read()
+        file_content = await file.read()
+        filename = file.filename.lower()
         
-        # Initialize indexer with API key
+        # Initialize processor and indexer
+        processor = FinancialDocumentProcessor()
         indexer = initialize_indexer(api_key)
         
-        # Generate unique document name
-        document_name = f"{file.filename}_{uuid.uuid4().hex[:8]}"
-        
-        # Index the PDF
-        result = await indexer.index_pdf(pdf_content, document_name)
+        # Process different file types
+        if filename.endswith('.pdf'):
+            # Use existing PDF processing
+            result = await indexer.index_pdf(file_content, f"{file.filename}_{uuid.uuid4().hex[:8]}")
+        elif filename.endswith(('.xlsx', '.xls')):
+            # Process Excel files
+            text_content = processor.extract_text_from_excel(file_content, file.filename)
+            document_name = f"{file.filename}_{uuid.uuid4().hex[:8]}"
+            result = await indexer.index_text(text_content, document_name)
+        elif filename.endswith('.csv'):
+            # Process CSV files
+            text_content = processor.extract_text_from_csv(file_content, file.filename)
+            document_name = f"{file.filename}_{uuid.uuid4().hex[:8]}"
+            result = await indexer.index_text(text_content, document_name)
+        elif filename.endswith(('.docx', '.doc')):
+            # Process Word documents
+            text_content = processor.extract_text_from_word(file_content, file.filename)
+            document_name = f"{file.filename}_{uuid.uuid4().hex[:8]}"
+            result = await indexer.index_text(text_content, document_name)
+        elif filename.endswith('.txt'):
+            # Process text files
+            text_content = processor.extract_text_from_txt(file_content, file.filename)
+            document_name = f"{file.filename}_{uuid.uuid4().hex[:8]}"
+            result = await indexer.index_text(text_content, document_name)
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported file type. Supported: PDF, Excel, CSV, Word, TXT")
         
         # Store document info
-        indexed_documents[document_name] = result
+        indexed_documents[result["document_name"]] = result
         
         return {
-            "message": "PDF uploaded and indexed successfully",
-            "document_name": document_name,
+            "message": "Financial document uploaded and indexed successfully",
+            "document_name": result["document_name"],
             "chunks_created": result["chunks_created"],
             "total_text_length": result["total_text_length"]
         }
@@ -111,11 +219,8 @@ async def chat(request: ChatRequest):
                 # Extract text from (text, score) tuples
                 context = "\n\n".join([chunk[0] for chunk in relevant_chunks])
         
-        # Create system message with context
-        system_message = "You are a helpful AI assistant. "
-        if context:
-            system_message += f"Use the following context to answer the user's question:\n\n{context}\n\n"
-        system_message += "Provide clear, concise, and accurate responses based on the available information."
+        # Create specialized system message based on analysis type
+        system_message = _create_system_message(request.analysis_type, context)
         
         # Create an async generator function for streaming responses
         async def generate():
@@ -141,6 +246,59 @@ async def chat(request: ChatRequest):
         # Handle any errors that occur during processing
         raise HTTPException(status_code=500, detail=str(e))
 
+def _create_system_message(analysis_type: str, context: str) -> str:
+    """Create specialized system message based on analysis type"""
+    
+    base_message = "You are a specialized Financial Document Assistant for analysts and investors. "
+    
+    if context:
+        base_message += f"Use the following financial document context to answer the user's question:\n\n{context}\n\n"
+    
+    # Add specialized instructions based on analysis type
+    if analysis_type == "financial":
+        base_message += """
+        Focus on financial analysis including:
+        - Revenue and profit analysis
+        - Financial ratios and metrics
+        - Growth trends and drivers
+        - Cash flow analysis
+        - Balance sheet insights
+        Provide specific numbers and percentages when available.
+        """
+    elif analysis_type == "risk":
+        base_message += """
+        Focus on risk assessment including:
+        - Credit and market risks
+        - Operational risks
+        - Regulatory risks
+        - Liquidity risks
+        - Industry-specific risks
+        Provide risk ratings and mitigation strategies when possible.
+        """
+    elif analysis_type == "valuation":
+        base_message += """
+        Focus on valuation analysis including:
+        - Company valuation estimates
+        - Comparable company analysis
+        - DCF (Discounted Cash Flow) metrics
+        - Multiples analysis (P/E, EV/EBITDA, etc.)
+        - Growth projections
+        Provide valuation ranges and key assumptions.
+        """
+    else:  # general
+        base_message += """
+        Provide comprehensive financial analysis including:
+        - Key financial highlights
+        - Performance metrics
+        - Risk factors
+        - Growth opportunities
+        - Investment considerations
+        Be thorough but concise in your analysis.
+        """
+    
+    base_message += "Always provide clear, actionable insights for financial analysts and investors."
+    return base_message
+
 # Define endpoint to get document information
 @app.get("/api/documents")
 async def get_documents():
@@ -159,7 +317,7 @@ async def clear_documents():
         global document_indexer, indexed_documents
         document_indexer = None
         indexed_documents = {}
-        return {"message": "All documents cleared successfully"}
+        return {"message": "All financial documents cleared successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -94,6 +94,45 @@ class PDFIndexer:
         except Exception as e:
             raise ValueError(f"Error indexing PDF: {str(e)}")
     
+    async def index_text(self, text_content: str, document_name: str) -> dict:
+        """Index text content and return indexing results."""
+        try:
+            # Chunk the text content
+            chunks = self.pdf_loader.text_splitter.split(text_content)
+            
+            if not chunks:
+                raise ValueError("No text content could be processed")
+            
+            # Create metadata for each chunk
+            metadata_list = []
+            for i, chunk in enumerate(chunks):
+                metadata = {
+                    "document_name": document_name,
+                    "chunk_index": i,
+                    "total_chunks": len(chunks),
+                    "chunk_size": len(chunk)
+                }
+                metadata_list.append(metadata)
+            
+            # Build the vector database from chunks
+            await self.vector_db.abuild_from_list(chunks, metadata_list)
+            
+            # Store document info
+            self.indexed_documents[document_name] = {
+                "chunks": len(chunks),
+                "total_text_length": sum(len(chunk) for chunk in chunks)
+            }
+            
+            return {
+                "document_name": document_name,
+                "chunks_created": len(chunks),
+                "total_text_length": sum(len(chunk) for chunk in chunks),
+                "status": "success"
+            }
+            
+        except Exception as e:
+            raise ValueError(f"Error indexing text: {str(e)}")
+    
     def search_documents(self, query: str, k: int = 5) -> List[tuple]:
         """Search indexed documents for relevant content."""
         return self.vector_db.search_by_text(query, k)

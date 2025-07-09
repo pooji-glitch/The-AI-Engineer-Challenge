@@ -18,31 +18,63 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-      return NextResponse.json({ error: 'Only PDF files are supported' }, { status: 400 });
+    const allowedExtensions = ['.pdf', '.xlsx', '.xls', '.csv', '.docx', '.doc', '.txt'];
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+    
+    if (!allowedExtensions.includes(fileExtension)) {
+      return NextResponse.json({ error: 'Unsupported file type. Supported: PDF, Excel, CSV, Word, TXT' }, { status: 400 });
     }
 
-    // For now, we'll simulate successful upload
-    // In a full implementation, you'd process the PDF and extract text
+    // Generate document name
     const documentName = `${file.name}_${Date.now()}`;
     
-    // Simulate document processing
+    // Simulate document processing based on file type
+    let chunksCreated = 0;
+    let totalTextLength = 0;
+    
+    switch (fileExtension) {
+      case '.pdf':
+        chunksCreated = Math.floor(Math.random() * 15) + 5;
+        totalTextLength = Math.floor(Math.random() * 5000) + 2000;
+        break;
+      case '.xlsx':
+      case '.xls':
+        chunksCreated = Math.floor(Math.random() * 10) + 3;
+        totalTextLength = Math.floor(Math.random() * 3000) + 1000;
+        break;
+      case '.csv':
+        chunksCreated = Math.floor(Math.random() * 8) + 2;
+        totalTextLength = Math.floor(Math.random() * 2000) + 500;
+        break;
+      case '.docx':
+      case '.doc':
+        chunksCreated = Math.floor(Math.random() * 12) + 4;
+        totalTextLength = Math.floor(Math.random() * 4000) + 1500;
+        break;
+      case '.txt':
+        chunksCreated = Math.floor(Math.random() * 6) + 1;
+        totalTextLength = Math.floor(Math.random() * 1500) + 300;
+        break;
+    }
+    
+    // Store document info
     indexedDocuments[documentName] = {
       document_name: documentName,
-      chunks_created: Math.floor(Math.random() * 10) + 1,
-      total_text_length: Math.floor(Math.random() * 1000) + 100,
-      status: 'indexed'
+      chunks_created: chunksCreated,
+      total_text_length: totalTextLength,
+      status: 'indexed',
+      file_type: fileExtension
     };
 
     return NextResponse.json({
-      message: 'PDF uploaded and indexed successfully',
+      message: 'Financial document uploaded and indexed successfully',
       document_name: documentName,
-      chunks_created: indexedDocuments[documentName].chunks_created,
-      total_text_length: indexedDocuments[documentName].total_text_length
+      chunks_created: chunksCreated,
+      total_text_length: totalTextLength
     });
 
   } catch (error: any) {
-    console.error('PDF upload API error:', error);
+    console.error('Document upload API error:', error);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }

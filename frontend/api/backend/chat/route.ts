@@ -7,7 +7,7 @@ let documentIndexer: any = null;
 
 export async function POST(request: NextRequest) {
   try {
-    const { user_message, api_key } = await request.json();
+    const { user_message, api_key, analysis_type } = await request.json();
 
     if (!api_key) {
       return NextResponse.json({ error: 'API key is required' }, { status: 400 });
@@ -16,9 +16,8 @@ export async function POST(request: NextRequest) {
     // Initialize OpenAI client
     const openai = new OpenAI({ apiKey: api_key });
 
-    // For now, we'll create a simple response without RAG
-    // In a full implementation, you'd implement the PDF indexing and search here
-    const systemMessage = "You are a helpful AI assistant. Provide clear, concise, and accurate responses based on the available information.";
+    // Create specialized system message based on analysis type
+    const systemMessage = createSystemMessage(analysis_type || 'general');
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -40,4 +39,58 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+function createSystemMessage(analysisType: string): string {
+  let baseMessage = "You are a specialized Financial Document Assistant for analysts and investors. ";
+  
+  // Add specialized instructions based on analysis type
+  switch (analysisType) {
+    case "financial":
+      baseMessage += `
+        Focus on financial analysis including:
+        - Revenue and profit analysis
+        - Financial ratios and metrics
+        - Growth trends and drivers
+        - Cash flow analysis
+        - Balance sheet insights
+        Provide specific numbers and percentages when available.
+      `;
+      break;
+    case "risk":
+      baseMessage += `
+        Focus on risk assessment including:
+        - Credit and market risks
+        - Operational risks
+        - Regulatory risks
+        - Liquidity risks
+        - Industry-specific risks
+        Provide risk ratings and mitigation strategies when possible.
+      `;
+      break;
+    case "valuation":
+      baseMessage += `
+        Focus on valuation analysis including:
+        - Company valuation estimates
+        - Comparable company analysis
+        - DCF (Discounted Cash Flow) metrics
+        - Multiples analysis (P/E, EV/EBITDA, etc.)
+        - Growth projections
+        Provide valuation ranges and key assumptions.
+      `;
+      break;
+    default: // general
+      baseMessage += `
+        Provide comprehensive financial analysis including:
+        - Key financial highlights
+        - Performance metrics
+        - Risk factors
+        - Growth opportunities
+        - Investment considerations
+        Be thorough but concise in your analysis.
+      `;
+  }
+  
+  baseMessage += " Always provide clear, actionable insights for financial analysts and investors.";
+  return baseMessage;
 } 

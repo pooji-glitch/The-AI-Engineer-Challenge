@@ -20,9 +20,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
+    // Validate file type
+    const allowedExtensions = ['.pdf', '.xlsx', '.xls', '.csv', '.docx', '.doc', '.txt'];
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+    
+    if (!allowedExtensions.includes(fileExtension)) {
       return NextResponse.json(
-        { error: 'Only PDF files are allowed' },
+        { error: 'Unsupported file type. Supported: PDF, Excel, CSV, Word, TXT' },
         { status: 400 }
       );
     }
@@ -43,10 +47,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error('PDF upload API error:', error);
+    console.error('Document upload API error:', error);
     return NextResponse.json(
       { 
-        error: error instanceof Error ? error.message : "I'm sorry, I'm having trouble uploading the PDF right now. Please try again later."
+        error: error instanceof Error ? error.message : "I'm sorry, I'm having trouble uploading the financial document right now. Please try again later."
       },
       { status: 500 }
     );

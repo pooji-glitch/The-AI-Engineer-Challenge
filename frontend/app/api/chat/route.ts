@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, apiKey } = await request.json();
+    const { message, apiKey, analysisType } = await request.json();
 
     if (!message || !apiKey) {
       return NextResponse.json(
@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         user_message: message,
         api_key: apiKey,
+        analysis_type: analysisType || 'general',
       }),
     });
 
