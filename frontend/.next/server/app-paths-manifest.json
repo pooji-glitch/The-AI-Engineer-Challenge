@@ -1,6 +1,3 @@
 {
-  "/page": "app/page.js",
-  "/api/documents/route": "app/api/documents/route.js",
-  "/api/chat/route": "app/api/chat/route.js",
-  "/api/upload-pdf/route": "app/api/upload-pdf/route.js"
+  "/page": "app/page.js"
 }

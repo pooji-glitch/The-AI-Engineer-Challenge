@@ -22,8 +22,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "https://your-frontend-domain.vercel.app",
-        "https://*.vercel.app"
+        "https://*.vercel.app",
+        "https://*.railway.app",
+        "https://*.render.com"
     ],  # Allows requests from specific origins
     allow_credentials=True,  # Allows cookies to be included in requests
     allow_methods=["*"],  # Allows all HTTP methods (GET, POST, etc.)

@@ -32,8 +32,11 @@ export async function POST(request: NextRequest) {
     backendFormData.append('file', file);
     backendFormData.append('api_key', apiKey);
 
+    // Get backend URL from environment variable or use localhost for development
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+
     // Forward the request to your backend API
-    const backendResponse = await fetch('http://localhost:8000/api/upload-pdf', {
+    const backendResponse = await fetch(`${backendUrl}/api/upload-pdf`, {
       method: 'POST',
       body: backendFormData,
     });

@@ -2,66 +2,44 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { message, apiKey } = body;
+    const { message, apiKey } = await request.json();
 
-    if (!message) {
+    if (!message || !apiKey) {
       return NextResponse.json(
-        { error: 'Message is required' },
+        { error: 'Message and API key are required' },
         { status: 400 }
       );
     }
 
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: 'OpenAI API key is required' },
-        { status: 400 }
-      );
-    }
+    // Get backend URL from environment variable or use localhost for development
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
     // Forward the request to your backend API
-    const backendResponse = await fetch('http://localhost:8000/api/chat', {
+    const backendResponse = await fetch(`${backendUrl}/api/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         user_message: message,
-        model: "gpt-4o-mini",
-        api_key: apiKey
+        api_key: apiKey,
       }),
     });
 
     if (!backendResponse.ok) {
-      throw new Error('Backend API request failed');
+      const errorData = await backendResponse.json();
+      throw new Error(errorData.detail || 'Backend API request failed');
     }
 
-    // Handle streaming response
-    const reader = backendResponse.body?.getReader();
-    if (!reader) {
-      throw new Error('No response body');
-    }
-
-    const decoder = new TextDecoder();
-    let responseText = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      
-      const chunk = decoder.decode(value);
-      responseText += chunk;
-    }
+    const data = await backendResponse.json();
     
-    return NextResponse.json({
-      response: responseText
-    });
+    return NextResponse.json(data);
 
   } catch (error) {
     console.error('Chat API error:', error);
     return NextResponse.json(
       { 
-        response: "I'm sorry, I'm having trouble connecting to the server right now. Please try again later."
+        error: error instanceof Error ? error.message : "I'm sorry, I'm having trouble connecting to the server right now. Please try again later."
       },
       { status: 500 }
     );
