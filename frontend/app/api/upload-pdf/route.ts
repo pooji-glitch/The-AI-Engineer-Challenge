@@ -27,18 +27,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create a new FormData to forward to the backend
-    const backendFormData = new FormData();
-    backendFormData.append('file', file);
-    backendFormData.append('api_key', apiKey);
-
-    // Get backend URL from environment variable or use localhost for development
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-
-    // Forward the request to your backend API
-    const backendResponse = await fetch(`${backendUrl}/api/upload-pdf`, {
+    // Use Vercel backend function for upload
+    const backendResponse = await fetch('/api/backend/upload-pdf', {
       method: 'POST',
-      body: backendFormData,
+      body: formData,
     });
 
     if (!backendResponse.ok) {
