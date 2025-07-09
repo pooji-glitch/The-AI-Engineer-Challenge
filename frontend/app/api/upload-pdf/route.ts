@@ -27,21 +27,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert file to base64 for Vercel Python function
-    const arrayBuffer = await file.arrayBuffer();
-    const fileData = Buffer.from(arrayBuffer).toString('base64');
+    // Create a new FormData to forward to the backend
+    const backendFormData = new FormData();
+    backendFormData.append('file', file);
+    backendFormData.append('api_key', apiKey);
 
-    // Use Vercel Python function for upload
-    const backendResponse = await fetch('/api/backend/upload-pdf', {
+    // Get backend URL from environment variable or use localhost for development
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+
+    // Forward the request to your backend API
+    const backendResponse = await fetch(`${backendUrl}/api/upload-pdf`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        file: fileData,
-        api_key: apiKey,
-        filename: file.name,
-      }),
+      body: backendFormData,
     });
 
     if (!backendResponse.ok) {

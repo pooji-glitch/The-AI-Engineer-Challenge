@@ -11,8 +11,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Use Vercel Python function for chat
-    const backendResponse = await fetch('/api/backend/chat', {
+    // Get backend URL from environment variable or use localhost for development
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+
+    // Forward the request to your backend API
+    const backendResponse = await fetch(`${backendUrl}/api/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
-    // Use Vercel Python function for documents
-    const backendResponse = await fetch('/api/backend/documents', {
+    // Get backend URL from environment variable or use localhost for development
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+
+    // Forward the request to your backend API
+    const backendResponse = await fetch(`${backendUrl}/api/documents`, {
       method: 'GET',
     });
 
@@ -29,8 +32,11 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    // Use Vercel Python function for documents
-    const backendResponse = await fetch('/api/backend/documents', {
+    // Get backend URL from environment variable or use localhost for development
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+
+    // Forward the request to your backend API
+    const backendResponse = await fetch(`${backendUrl}/api/documents`, {
       method: 'DELETE',
     });
 
