@@ -4,7 +4,7 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const apiKey = formData.get('apiKey') as string;
+    const apiKey = formData.get('api_key') as string;
 
     if (!file) {
       return NextResponse.json(

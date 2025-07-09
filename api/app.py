@@ -20,7 +20,11 @@ app = FastAPI(title="AI Chat API with RAG")
 # This allows the API to be accessed from different domains/origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows requests from any origin
+    allow_origins=[
+        "http://localhost:3000",
+        "https://your-frontend-domain.vercel.app",
+        "https://*.vercel.app"
+    ],  # Allows requests from specific origins
     allow_credentials=True,  # Allows cookies to be included in requests
     allow_methods=["*"],  # Allows all HTTP methods (GET, POST, etc.)
     allow_headers=["*"],  # Allows all headers in requests
@@ -43,10 +47,12 @@ class DocumentInfo(BaseModel):
     status: str
 
 # Initialize the document indexer
-def initialize_indexer():
+def initialize_indexer(api_key: str = None):
     global document_indexer
     if document_indexer is None:
-        vector_db = VectorDatabase()
+        from aimakerspace.openai_utils.embedding import EmbeddingModel
+        embedding_model = EmbeddingModel() if api_key is None else EmbeddingModel(api_key=api_key)
+        vector_db = VectorDatabase(embedding_model)
         pdf_loader = PDFLoader()
         document_indexer = PDFIndexer(vector_db, pdf_loader)
     return document_indexer
@@ -65,8 +71,8 @@ async def upload_pdf(
         # Read file content
         pdf_content = await file.read()
         
-        # Initialize indexer
-        indexer = initialize_indexer()
+        # Initialize indexer with API key
+        indexer = initialize_indexer(api_key)
         
         # Generate unique document name
         document_name = f"{file.filename}_{uuid.uuid4().hex[:8]}"
@@ -101,7 +107,8 @@ async def chat(request: ChatRequest):
             relevant_chunks = document_indexer.search_documents(request.user_message, k=3)
             
             if relevant_chunks:
-                context = "\n\n".join([chunk for chunk in relevant_chunks])
+                # Extract text from (text, score) tuples
+                context = "\n\n".join([chunk[0] for chunk in relevant_chunks])
         
         # Create system message with context
         system_message = "You are a helpful AI assistant. "
