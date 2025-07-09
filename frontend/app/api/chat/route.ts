@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import OpenAI from 'openai';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,35 +12,84 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Use Vercel backend function for chat
-    const backendResponse = await fetch('/api/backend/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        user_message: message,
-        api_key: apiKey,
-        analysis_type: analysisType || 'general',
-      }),
+    // Initialize OpenAI client
+    const openai = new OpenAI({ apiKey: apiKey });
+
+    // Create specialized system message based on analysis type
+    const systemMessage = createSystemMessage(analysisType || 'general');
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemMessage },
+        { role: "user", content: message }
+      ],
+      stream: false
     });
 
-    if (!backendResponse.ok) {
-      const errorData = await backendResponse.json();
-      throw new Error(errorData.detail || 'Backend API request failed');
-    }
+    const response = completion.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
 
-    const data = await backendResponse.json();
-    
-    return NextResponse.json(data);
+    return NextResponse.json({ response });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Chat API error:', error);
     return NextResponse.json(
-      { 
-        error: error instanceof Error ? error.message : "I'm sorry, I'm having trouble connecting to the server right now. Please try again later."
-      },
+      { error: error.message || 'Internal server error' },
       { status: 500 }
     );
   }
+}
+
+function createSystemMessage(analysisType: string): string {
+  let baseMessage = "You are a specialized Financial Document Assistant for analysts and investors. ";
+  
+  // Add specialized instructions based on analysis type
+  switch (analysisType) {
+    case "financial":
+      baseMessage += `
+        Focus on financial analysis including:
+        - Revenue and profit analysis
+        - Financial ratios and metrics
+        - Growth trends and drivers
+        - Cash flow analysis
+        - Balance sheet insights
+        Provide specific numbers and percentages when available.
+      `;
+      break;
+    case "risk":
+      baseMessage += `
+        Focus on risk assessment including:
+        - Credit and market risks
+        - Operational risks
+        - Regulatory risks
+        - Liquidity risks
+        - Industry-specific risks
+        Provide risk ratings and mitigation strategies when possible.
+      `;
+      break;
+    case "valuation":
+      baseMessage += `
+        Focus on valuation analysis including:
+        - Company valuation estimates
+        - Comparable company analysis
+        - DCF (Discounted Cash Flow) metrics
+        - Multiples analysis (P/E, EV/EBITDA, etc.)
+        - Growth projections
+        Provide valuation ranges and key assumptions.
+      `;
+      break;
+    default: // general
+      baseMessage += `
+        Provide comprehensive financial analysis including:
+        - Key financial highlights
+        - Performance metrics
+        - Risk factors
+        - Growth opportunities
+        - Investment considerations
+        Be thorough but concise in your analysis.
+      `;
+  }
+  
+  baseMessage += " Always provide clear, actionable insights for financial analysts and investors.";
+  return baseMessage;
 } 
