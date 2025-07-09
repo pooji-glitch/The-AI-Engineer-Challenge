@@ -3,11 +3,18 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message } = body;
+    const { message, apiKey } = body;
 
     if (!message) {
       return NextResponse.json(
         { error: 'Message is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'OpenAI API key is required' },
         { status: 400 }
       );
     }
@@ -19,10 +26,9 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        developer_message: "You are a helpful AI assistant. Provide clear, concise, and accurate responses.",
         user_message: message,
-        model: "gpt-4.1-mini",
-        api_key: process.env.OPENAI_API_KEY || "your-api-key-here"
+        model: "gpt-4o-mini",
+        api_key: apiKey
       }),
     });
 
@@ -30,10 +36,25 @@ export async function POST(request: NextRequest) {
       throw new Error('Backend API request failed');
     }
 
-    const data = await backendResponse.json();
+    // Handle streaming response
+    const reader = backendResponse.body?.getReader();
+    if (!reader) {
+      throw new Error('No response body');
+    }
+
+    const decoder = new TextDecoder();
+    let responseText = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      const chunk = decoder.decode(value);
+      responseText += chunk;
+    }
     
     return NextResponse.json({
-      response: data.response || "I'm sorry, I couldn't process your request at the moment."
+      response: responseText
     });
 
   } catch (error) {

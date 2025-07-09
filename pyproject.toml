@@ -11,3 +11,4 @@ dependencies = [
     "pydantic>=2.11.4",
     "uvicorn>=0.34.2",
 ]
+
