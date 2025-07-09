@@ -2,19 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
-    // Use Vercel backend function for documents
-    const backendResponse = await fetch('/api/backend/documents', {
-      method: 'GET',
+    // For now, return empty documents list since we're not storing files
+    // In a real implementation, you'd want to use a database or file storage service
+    return NextResponse.json({
+      documents: []
     });
-
-    if (!backendResponse.ok) {
-      const errorData = await backendResponse.json();
-      throw new Error(errorData.detail || 'Backend API request failed');
-    }
-
-    const data = await backendResponse.json();
-    
-    return NextResponse.json(data);
 
   } catch (error) {
     console.error('Documents API error:', error);
@@ -29,19 +21,11 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    // Use Vercel backend function for documents
-    const backendResponse = await fetch('/api/backend/documents', {
-      method: 'DELETE',
+    // For now, just return success since we're not storing files
+    // In a real implementation, you'd want to clear documents from storage
+    return NextResponse.json({
+      message: 'Documents cleared successfully'
     });
-
-    if (!backendResponse.ok) {
-      const errorData = await backendResponse.json();
-      throw new Error(errorData.detail || 'Backend API request failed');
-    }
-
-    const data = await backendResponse.json();
-    
-    return NextResponse.json(data);
 
   } catch (error) {
     console.error('Documents API error:', error);
